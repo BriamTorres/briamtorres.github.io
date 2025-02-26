@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparación de Economías</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+   
+</head>
+<body>
+
+   <!-- Contenedor para los formularios -->
+   <div class="form-container">
+    <!-- Definir nombres de productos -->
+    <div class="form-section">
+        <h3>Definir nombres de productos</h3>
+        <label for="productoDependiente">Producto Dependiente:</label>
+        <input type="text" id="productoDependiente" placeholder="Ej: Fresas">
+        <label for="productoIndependiente">Producto Independiente:</label>
+        <input type="text" id="productoIndependiente" placeholder="Ej: Papas">
+        <button onclick="guardarNombres()">Guardar</button>
+    </div>
+
+    <!-- Ingresar Factor de Producción y Costo de Oportunidad -->
+    <div class="form-section">
+        <h3>Ingresar Factor de Producción y Costo de Oportunidad</h3>
+        <label for="factorProduccion">Factor de Producción:</label>
+        <input type="number" id="factorProduccion" placeholder="Ej: 200">
+        <label for="costoOportunidad">Costo de Oportunidad:</label>
+        <input type="number" id="costoOportunidad" placeholder="Ej: 2">
+        <button onclick="calcularProduccion()">Calcular</button>
+    </div>
+
+    <!-- Ingresar Datos Directamente -->
+    <div class="form-section">
+        <h3>Ingresar Datos Directamente</h3>
+        <label for="pais">País:</label>
+        <input type="text" id="pais" placeholder="Ej: Perú">
+        <label for="dependiente">Cantidad de <span id="nombreDependiente">Producto Dependiente</span>:</label>
+        <input type="number" id="dependiente" placeholder="Ej: 100">
+        <label for="independiente">Cantidad de <span id="nombreIndependiente">Producto Independiente</span>:</label>
+        <input type="number" id="independiente" placeholder="Ej: 50">
+        <button onclick="agregarDatos()">Agregar</button>
+    </div>
+</div>
+
+<!-- Tabla de datos -->
+<table id="data-table">
+    <thead>
+        <tr>
+            <th>PAÍS</th>
+            <th><span id="thDependiente">Producto Dependiente</span></th>
+            <th><span id="thIndependiente">Producto Independiente</span></th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<!-- Ecuaciones y gráfico -->
+<h3>Ecuaciones de costo de oportunidad</h3>
+<div id="ecuaciones"></div>
+<h3>Ventaja Comparativa</h3>
+<div id="ventajaComparativa"></div>
+<div id="chartContainer">
+    <canvas id="chartCanvas"></canvas>
+</div>
+    <script>
+        let chart;
+        let nombreDependiente = "Producto Dependiente";
+        let nombreIndependiente = "Producto Independiente";
+
+        function guardarNombres() {
+            nombreDependiente = document.getElementById("productoDependiente").value || "Producto Dependiente";
+            nombreIndependiente = document.getElementById("productoIndependiente").value || "Producto Independiente";
+
+            document.getElementById("nombreDependiente").innerText = nombreDependiente;
+            document.getElementById("nombreIndependiente").innerText = nombreIndependiente;
+            document.getElementById("thDependiente").innerText = nombreDependiente;
+            document.getElementById("thIndependiente").innerText = nombreIndependiente;
+        }
+        function calcularProduccion() {
+            let factorProduccion = parseFloat(document.getElementById("factorProduccion").value);
+            let costoOportunidad = parseFloat(document.getElementById("costoOportunidad").value);
+
+            if (!factorProduccion || !costoOportunidad) {
+                alert("Por favor, ingrese valores válidos.");
+                return;
+            }
+
+            document.getElementById("dependiente").value = factorProduccion;
+            document.getElementById("independiente").value = (factorProduccion / costoOportunidad).toFixed(2);
+        }
+        
+
+        function actualizarGrafico() {
+            let table = document.getElementById("data-table");
+            let rows = table.getElementsByTagName("tr");
+
+            let datasets = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                let cells = rows[i].getElementsByTagName("td");
+                let pais = cells[0].innerText;
+                let dependiente = parseInt(cells[1].innerText);
+                let independiente = parseInt(cells[2].innerText);
+
+                let data = [{x: 0, y: dependiente}, {x: independiente, y: 0}];
+
+                datasets.push({
+                    label: `${pais}`,
+                    data: data,
+                    borderColor: i % 2 === 0 ? "red" : "blue",
+                    backgroundColor: i % 2 === 0 ? "red" : "blue",
+                    fill: false
+                });
+            }
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            let ctx = document.getElementById("chartCanvas").getContext("2d");
+            chart = new Chart(ctx, {
+                type: "line",
+                data: { datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { type: "linear", position: "bottom" },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function agregarDatos() {
+            let pais = document.getElementById("pais").value.toUpperCase();
+            let dependiente = document.getElementById("dependiente").value;
+            let independiente = document.getElementById("independiente").value;
+
+            if (!pais || !dependiente || !independiente) {
+                alert("Por favor, ingrese todos los datos.");
+                return;
+            }
+
+            let table = document.getElementById("data-table").getElementsByTagName("tbody")[0];
+            let newRow = table.insertRow();
+            newRow.insertCell(0).innerText = pais;
+            newRow.insertCell(1).innerText = dependiente;
+            newRow.insertCell(2).innerText = independiente;
+            
+            let deleteCell = newRow.insertCell(3);
+            let deleteButton = document.createElement("button");
+            deleteButton.innerText = "Eliminar";
+            deleteButton.onclick = function() {
+                table.deleteRow(newRow.rowIndex - 1);
+                actualizarGrafico();
+                actualizarEcuaciones();
+            
+            };
+            deleteCell.appendChild(deleteButton);
+
+            document.getElementById("pais").value = "";
+            document.getElementById("dependiente").value = "";
+            document.getElementById("independiente").value = "";
+
+            actualizarGrafico();
+            actualizarEcuaciones();
+          
+        }
+
+        function actualizarEcuaciones() {
+            let table = document.getElementById("data-table");
+            let rows = table.getElementsByTagName("tr");
+            let ecuacionesDiv = document.getElementById("ecuaciones");
+            ecuacionesDiv.innerHTML = "";
+
+            for (let i = 1; i < rows.length; i++) {
+                let cells = rows[i].getElementsByTagName("td");
+                let pais = cells[0].innerText;
+                let dependiente = parseFloat(cells[1].innerText);
+                let independiente = parseFloat(cells[2].innerText);
+                
+                let costoOportunidad = dependiente / independiente;
+                let inversa = independiente / dependiente;
+
+                let inicialDep = nombreDependiente.charAt(0).toUpperCase();
+                let inicialInd = nombreIndependiente.charAt(0).toUpperCase();
+                let inicialPais = pais.charAt(0).toUpperCase();
+
+                let ecuacion1 = `${inicialDep}${inicialPais} = ${dependiente} - ${costoOportunidad.toFixed(2)} ${inicialInd}${inicialPais}`;
+                let ecuacion2 = `${inicialInd}${inicialPais} = ${independiente} - ${inversa.toFixed(2)} ${inicialDep}${inicialPais}`;
+
+                let p = document.createElement("p");
+                p.innerHTML = `<strong>${pais}:</strong> ${ecuacion1} <br> ${ecuacion2}`;
+                ecuacionesDiv.appendChild(p);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", actualizarGrafico);
+
+    </script>
+
+</body>
+</html>
